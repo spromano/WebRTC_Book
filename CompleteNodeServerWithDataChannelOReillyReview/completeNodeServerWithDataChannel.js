@@ -12,6 +12,26 @@ var app = http.createServer(function (req, res) {
 // Use socket.io JavaScript library for real-time web applications
 var io = require('socket.io').listen(app);
 
+// credits to http://stackoverflow.com/questions/6563885/socket-io-how-do-i-get-a-list-of-connected-sockets-clients/24145381#24145381
+function findClientsSocket(roomId, namespace) {
+    var res = [];
+    var ns = io.of(namespace ||"/");    // the default namespace is "/"
+
+    if (ns) {
+        for (var id in ns.connected) {
+            if(roomId) {
+                var index = ns.connected[id].rooms.indexOf(roomId) ;
+                if(index !== -1) {
+                    res.push(ns.connected[id]);
+                }
+            } else {
+                res.push(ns.connected[id]);
+            }
+        }
+    }
+    return res.length;
+}
+
 // Let's start managing connections...
 io.sockets.on('connection', function (socket){
 	
@@ -24,7 +44,7 @@ io.sockets.on('connection', function (socket){
         
         // Handle 'create or join' messages
         socket.on('create or join', function (room) {
-                var numClients = io.sockets.clients(room).length;
+                var numClients = findClientsSocket(room);
 
                 log('S --> Room ' + room + ' has ' + numClients + ' client(s)');
                 log('S --> Request to create or join room', room);
