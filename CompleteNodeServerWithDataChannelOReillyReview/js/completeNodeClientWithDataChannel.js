@@ -138,21 +138,21 @@ socket.on('log', function (array){
 // Receive message from the other peer via the signalling server 
 socket.on('message', function (message){
   console.log('Received message:', message);
-  if (message === 'got user media') {
+  if (message.payload === 'got user media') {
       checkAndStart();
-  } else if (message.type === 'offer') {
+  } else if (message.payload.type === 'offer') {
     if (!isInitiator && !isStarted) {
       checkAndStart();
     }
-    pc.setRemoteDescription(new RTCSessionDescription(message));
+    pc.setRemoteDescription(new RTCSessionDescription(message.payload));
     doAnswer();
-  } else if (message.type === 'answer' && isStarted) {
-    pc.setRemoteDescription(new RTCSessionDescription(message));
-  } else if (message.type === 'candidate' && isStarted) {
+  } else if (message.payload.type === 'answer' && isStarted) {
+    pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+  } else if (message.payload.type === 'candidate' && isStarted) {
     var candidate = new RTCIceCandidate({sdpMLineIndex:message.label,
-      candidate:message.candidate});
+      candidate:message.payload.candidate});
     pc.addIceCandidate(candidate);
-  } else if (message === 'bye' && isStarted) {
+  } else if (message.payload === 'bye' && isStarted) {
     handleRemoteHangup();
   }
 });
@@ -163,7 +163,7 @@ socket.on('message', function (message){
 // Send message to the other peer via the signalling server
 function sendMessage(message){
   console.log('Sending message: ', message);
-  socket.emit('message', message);
+  socket.emit('message', {channel: room, payload: message});
 }
 ////////////////////////////////////////////////////
 
