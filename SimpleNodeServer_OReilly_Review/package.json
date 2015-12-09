@@ -2,17 +2,26 @@
   "name": "SimpleNodeServer",
   "version": "0.1.0",
   "description": "SimpleNodeServer",
-  "main": "hello-world-server.js",
+  "main": "simpleNodeServer_OK.js",
   "scripts": {
     "test": "echo \"Error: no test specified! Configure in package.json\" && exit 1"
   },
-  "repository": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/spromano/WebRTC_Book"
+  },
   "keywords": [
-    "Node.js",
-    "Eclipse",
-    "Nodeclipse"
+    "WebRTC"
   ],
-  "author": "",
+  "author": "Simon Pietro Romano",
   "license": "BSD",
-  "readmeFilename": "README.md"
+  "dependencies": {
+    "node-static": "~0.7.7",
+    "socket.io": "~1.3.6"
+  },
+  "devDependencies": {},
+  "bugs": {
+    "url": "https://github.com/spromano/WebRTC_Book/issues"
+  },
+  "homepage": "https://github.com/spromano/WebRTC_Book"
 }

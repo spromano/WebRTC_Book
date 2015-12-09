@@ -11,6 +11,8 @@ var app = http.createServer(function (req, res) {
   file.serve(req, res);
 }).listen(8181);
 
+console.log('Listening on ' + app.address().port);
+
 // Use socket.io JavaScript library for real-time web applications
 var io = require('socket.io').listen(app);
 
