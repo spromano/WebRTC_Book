@@ -1,11 +1,10 @@
 'use strict';
 
-// Look after different browser vendors' ways of calling the getUserMedia() API method:
-// Opera --> getUserMedia
-// Chrome --> webkitGetUserMedia
-// Firefox --> mozGetUserMedia
-navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia 
-							|| navigator.mozGetUserMedia;
+//Look after different browser vendors' ways of calling the getUserMedia() API method:
+//Opera --> getUserMedia
+//Chrome --> webkitGetUserMedia
+//Firefox --> mozGetUserMedia
+navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia;
 
 // Clean-up function:
 // collect garbage before unloading browser's window
@@ -27,9 +26,9 @@ var remoteVideo = document.querySelector('#remoteVideo');
 sendButton.onclick = sendData;
 
 // Flags...
-var isChannelReady = false;
-var isInitiator = false;
-var isStarted = false;
+var isChannelReady;
+var isInitiator;
+var isStarted;
 
 // WebRTC data structures
 // Streams
@@ -40,23 +39,34 @@ var pc;
 
 // Peer Connection ICE protocol configuration (either Firefox or Chrome)
 var pc_config = webrtcDetectedBrowser === 'firefox' ?
-  {'iceServers':[{'url':'stun:23.21.150.121'}]} : // IP address
-  {'iceServers': [{'url': 'stun:stun.l.google.com:19302'}]};
-  
+  {'iceServers':[{'urls':'stun:23.21.150.121'}]} : // IP address
+  {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]};
+
+// Peer Connection contraints: (i) use DTLS; (ii) use data channel  
 var pc_constraints = {
   'optional': [
-    {'DtlsSrtpKeyAgreement': true}
+    {'DtlsSrtpKeyAgreement': true},
+    {'RtpDataChannels': true}
   ]};
 
 // Session Description Protocol constraints:
-var sdpConstraints = {};
+// - use both audio and video regardless of what devices are available
+//var sdpConstraints = {'mandatory': {
+//  'OfferToReceiveAudio':true,
+//  'OfferToReceiveVideo':true }};
+
+var sdpConstraints = webrtcDetectedBrowser === 'firefox' ? 
+		{'offerToReceiveAudio':true,'offerToReceiveVideo':true } :
+		{'mandatory': {'OfferToReceiveAudio':true, 'OfferToReceiveVideo':true }};
+			
+
 /////////////////////////////////////////////
 
 // Let's get started: prompt user for input (room name)
 var room = prompt('Enter room name:');
 
 // Connect to signalling server
-var socket = io.connect("http://localhost:8181");
+var socket = io.connect();
 
 // Send 'Create or join' message to singnalling server
 if (room !== '') {
@@ -65,7 +75,11 @@ if (room !== '') {
 }
 
 // Set getUserMedia constraints
-var constraints = {video: true, audio: true};
+var constraints = {video: true};
+
+// Call getUserMedia()
+navigator.getUserMedia(constraints, handleUserMedia, handleUserMediaError);
+console.log('Getting user media with constraints', constraints);
 
 // From this point on, execution proceeds based on asynchronous events...
 
@@ -78,6 +92,9 @@ function handleUserMedia(stream) {
 	attachMediaStream(localVideo, stream);
 	console.log('Adding local stream.');
 	sendMessage('got user media');
+	if (isInitiator) {
+		checkAndStart();
+	}
 }
 
 function handleUserMediaError(error){
@@ -97,12 +114,6 @@ function handleUserMediaError(error){
 socket.on('created', function (room){
   console.log('Created room ' + room);
   isInitiator = true;
-  
-  // Call getUserMedia()
-  navigator.getUserMedia(constraints, handleUserMedia, handleUserMediaError);
-  console.log('Getting user media with constraints', constraints);
-  
-  checkAndStart();
 });
 
 // Handle 'full' message coming back from server:
@@ -124,10 +135,6 @@ socket.on('join', function (room){
 socket.on('joined', function (room){
   console.log('This peer has joined room ' + room);
   isChannelReady = true;
-  
-  // Call getUserMedia()
-  navigator.getUserMedia(constraints, handleUserMedia, handleUserMediaError);
-  console.log('Getting user media with constraints', constraints);
 });
 
 // Server-sent log message...
@@ -139,7 +146,7 @@ socket.on('log', function (array){
 socket.on('message', function (message){
   console.log('Received message:', message);
   if (message === 'got user media') {
-      checkAndStart();
+        checkAndStart();
   } else if (message.type === 'offer') {
     if (!isInitiator && !isStarted) {
       checkAndStart();
@@ -170,9 +177,9 @@ function sendMessage(message){
 ////////////////////////////////////////////////////
 // Channel negotiation trigger function
 function checkAndStart() {
-  
-  if (!isStarted && typeof localStream != 'undefined' && isChannelReady) {  
-	createPeerConnection();
+  if (!isStarted && typeof localStream != 'undefined' && isChannelReady) {
+    createPeerConnection();
+    pc.addStream(localStream);
     isStarted = true;
     if (isInitiator) {
       doCall();
@@ -185,20 +192,15 @@ function checkAndStart() {
 function createPeerConnection() {
   try {
     pc = new RTCPeerConnection(pc_config, pc_constraints);
-    
-    console.log("Calling pc.addStream(localStream)! Initiator: " + isInitiator);
-    pc.addStream(localStream);
-    
     pc.onicecandidate = handleIceCandidate;
     console.log('Created RTCPeerConnnection with:\n' +
       '  config: \'' + JSON.stringify(pc_config) + '\';\n' +
-      '  constraints: \'' + JSON.stringify(pc_constraints) + '\'.'); 
+      '  constraints: \'' + JSON.stringify(pc_constraints) + '\'.');
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
     alert('Cannot create RTCPeerConnection object.');
       return;
   }
-
   pc.onaddstream = handleRemoteStreamAdded;
   pc.onremovestream = handleRemoteStreamRemoved;
 
@@ -215,7 +217,7 @@ function createPeerConnection() {
     sendChannel.onopen = handleSendChannelStateChange;
     sendChannel.onmessage = handleMessage;
     sendChannel.onclose = handleSendChannelStateChange;
-  } else { // Joiner    
+  } else { // Joiner
     pc.ondatachannel = gotReceiveChannel;
   }
 }
@@ -317,7 +319,6 @@ function setLocalAndSendMessage(sessionDescription) {
 function handleRemoteStreamAdded(event) {
   console.log('Remote stream added.');
   attachMediaStream(remoteVideo, event.stream);
-  console.log('Remote stream attached!!.');
   remoteStream = event.stream;
 }
 
