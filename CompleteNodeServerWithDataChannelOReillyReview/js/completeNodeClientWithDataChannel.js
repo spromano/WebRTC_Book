@@ -45,8 +45,9 @@ var pc_config = webrtcDetectedBrowser === 'firefox' ?
 // Peer Connection contraints: (i) use DTLS; (ii) use data channel  
 var pc_constraints = {
   'optional': [
-    {'DtlsSrtpKeyAgreement': true},
-    {'RtpDataChannels': true}
+    {'DtlsSrtpKeyAgreement': true}
+// RTP data channel is deprecated
+// {'RtpDataChannels': true}
   ]};
 
 // Session Description Protocol constraints:
