@@ -1,11 +1,16 @@
 var static = require('node-static');
-var http = require('http');
+var https = require('https');
+var fs = require('fs');
 // Create a node-static server instance
 var file = new(static.Server)();
 
-// We use the http module’s createServer function and
+// We use the https module's createServer function and
 // rely on our instance of node-static to serve the files
-var app = http.createServer(function (req, res) {
+var options = {
+	key: fs.readFileSync('tls/server.key', 'utf8'),
+	cert: fs.readFileSync('tls/server.crt', 'utf8')
+};
+var app = https.createServer(options, function (req, res) {
   file.serve(req, res);
 }).listen(8181);
 
