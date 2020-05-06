@@ -5,11 +5,12 @@ var video = document.querySelector("video");
 
 function successCallback(stream) {
   window.stream = stream; // make the returned stream available to console...
-  if (window.URL) {
-    video.src = window.URL.createObjectURL(stream);
-  } else {
-    video.src = stream;
-  }
+  // if (window.URL) {
+  //   video.src = window.URL.createObjectURL(stream);
+  // } else {
+  //   video.src = stream;
+  // }
+  video.srcObject = stream;
   video.play();
 }
 
